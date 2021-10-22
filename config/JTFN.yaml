@@ -6,7 +6,7 @@ DATA:
 MODEL:
   architecture: 'jtfn'
   backbone: 'base'
-  steps: 1
+  steps: 3
   use_gau: [True, True, True, True, True]
   use_fim: [True, True, True, True]
   up: [True, True, True, True]
@@ -32,4 +32,3 @@ TRAIN:
   weight_decay: 0.0005
   gamma: 0.9
   weight:
-  #/project/code/cmf/JTFN/logs/JTFN_DRIVE_7.log/best_model.pt

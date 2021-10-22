@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.backbone.vgg import get_vgg16_layer, vgg16_bn
 from models.backbone.base import get_base
 from models.modules import FIM, GAU
 
@@ -10,7 +9,7 @@ class JTFN(nn.Module):
     def __init__(self, backbone, use_gau, use_fim, up, classes=1, steps=3, reduce_dim=False):
         super(JTFN, self).__init__()
         pretrained = False
-        assert backbone in ['vgg16', 'base']
+        assert backbone in ['base']
         assert classes == 1
         assert len(use_gau) == 5
         assert len(use_fim) == 4
@@ -22,12 +21,7 @@ class JTFN(nn.Module):
         self.reduce_dim = reduce_dim
         self.bce_loss = nn.BCELoss()
 
-        if self.backbone == 'vgg16':
-            print('INFO: Using VGG_16 bn')
-            vgg16 = vgg16_bn(pretrained=pretrained)
-            filters = [64, 128, 256, 512, 512]
-            self.layer0, self.layer1, self.layer2, self.layer3, self.layer4 = get_vgg16_layer(vgg16)
-        elif self.backbone == 'base':
+        if self.backbone == 'base':
             print('INFO: Using base backbone')
             filters = [64, 128, 256, 512, 512]
             self.layer0, self.layer1, self.layer2, self.layer3, self.layer4 = get_base(filters)
