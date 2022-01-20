@@ -13,7 +13,7 @@ class DatasetCRACK(data.Dataset):
 
     def __init__(self, benchmark, datapath, split, img_mode, img_size):
         super(DatasetCRACK, self).__init__()
-        self.split = 'val' if split in ['val', 'test'] else 'train'
+        self.split = 'val' if split in ['val', 'test'] else 'train.txt'
         self.benchmark = benchmark
         assert self.benchmark == 'cracktree200' or self.benchmark == 'crack500'
         self.img_mode = img_mode
@@ -43,21 +43,21 @@ class DatasetCRACK(data.Dataset):
         img_name = self.img_metadata[index]
         img, anno_mask, anno_boundary, org_img_size = self.load_frame(img_name)
 
-        if self.split == 'train':
+        if self.split == 'train.txt':
             img, anno_mask, anno_boundary = self.augmentation(img, anno_mask, anno_boundary)
 
-        if self.img_mode == 'resize' and self.split == 'train':
+        if self.img_mode == 'resize' and self.split == 'train.txt':
             img = self.resize(img)
             anno_mask = self.resize(anno_mask)
             anno_boundary = self.resize(anno_boundary)
-        elif self.img_mode == 'crop' and self.split == 'train':
+        elif self.img_mode == 'crop' and self.split == 'train.txt':
             i, j, h, w = self.get_params(img, (self.img_size, self.img_size))
             img = F.crop(img, i, j, h, w)
             anno_mask = F.crop(anno_mask, i, j, h, w)
             anno_boundary = F.crop(anno_boundary, i, j, h, w)
         else:
             pass
-
+        #print(img.size)
         img = self.norm_img(img)
 
         batch = {
@@ -123,13 +123,15 @@ class DatasetCRACK(data.Dataset):
 
     def read_img(self, img_name):
         # maybe png
-        return Image.open(os.path.join(self.img_path, img_name) + '.png')
+        return Image.open(os.path.join(self.img_path, img_name) + '.jpg')
 
     def load_metadata(self):
-        if self.split == 'train':
+        if self.split == 'train.txt':
             meta_file = os.path.join('data/split', self.benchmark, 'train.txt')
+            #meta_file = os.path.join(r'data\\split', self.benchmark, 'train.txt')
         elif self.split == 'val' or self.split == 'test':
             meta_file = os.path.join('data/split', self.benchmark, 'test.txt')
+            #meta_file = os.path.join(r'data\\split', self.benchmark, 'test.txt')
         else:
             raise RuntimeError('Undefined split ', self.split)
 

@@ -49,6 +49,16 @@ Please modify the config and run:
 Please modify the config and run:   
 `sh test_jtfn.sh`  
 
+### retained models
+We provide our retrained models on Roads, DRIVE and Crack500 ([link](https://pan.baidu.com/s/18TXR_WF_QRSLplq4q0WqxA), password:n14e):
+
+| Dataset | F1 |
+| ----- | ----- |
+| DRIVE | 82.70 |
+| Roads | 61.16 |
+| Crack500 | 66.38 |
+
+
 ## Citation
 If you use this code and our results for your research, please cite our paper.
 ```

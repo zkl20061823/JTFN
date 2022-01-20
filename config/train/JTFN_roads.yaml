@@ -1,0 +1,34 @@
+DATA:
+  benchmark: 'roads' # benchmark name, choices ['drive', 'cracktree200', 'crack500', 'roads]
+  datapath: datasets/roads
+  classes: 1
+
+MODEL:
+  architecture: 'jtfn'
+  backbone: 'resbase32'
+  steps: 2
+  use_gau: [True, True, True, True, True]
+  use_fim: [True, True, True, True]
+  up: [True, True, True, True]
+  reduce_dim: False
+
+TRAIN:
+  logname: JTFN_roads_train #save log and model
+  train_gpu: [0]
+  start_epoch: 0
+  epochs: 500
+  img_mode: crop
+  img_size: 256
+  nworker: 8
+  batch_size: 2  # batch size for training
+  batch_size_val: 1
+  evaluate: True
+  resume: False # path to latest checkpoint (default: False), set the path for True
+  optimizer: 'Adam'
+  base_lr: 0.001
+  lr_update: True
+  lr_step: 10000
+  ignore_label: 255
+  weight_decay: 0.0005
+  gamma: 0.95
+  weight: # None if resume is False

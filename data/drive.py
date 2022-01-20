@@ -32,10 +32,7 @@ class DatasetDRIVE(data.Dataset):
                                  [0.229, 0.224, 0.225])
         ])
 
-        if self.img_mode == 'resize':
-            self.resize = transforms.Resize([img_size, img_size], interpolation=Image.NEAREST)
-        else:
-            self.resize = None
+        self.resize = transforms.Resize([img_size, img_size], interpolation=Image.NEAREST)
 
     def __len__(self):
         return len(self.img_metadata)
@@ -58,6 +55,11 @@ class DatasetDRIVE(data.Dataset):
             anno_mask = F.crop(anno_mask, i, j, h, w)
             anno_boundary = F.crop(anno_boundary, i, j, h, w)
             ignore_mask = F.crop(ignore_mask, i, j, h, w)
+            if anno_mask.shape[1] != self.img_size or anno_mask.shape[2] != self.img_size:
+                img = self.resize(img)
+                anno_mask = self.resize(anno_mask)
+                anno_boundary = self.resize(anno_boundary)
+                ignore_mask = self.resize(ignore_mask)
         else:
             pass
 
@@ -98,6 +100,7 @@ class DatasetDRIVE(data.Dataset):
 
         if np.random.random() > 0.5:
             color_aug = transforms.ColorJitter(brightness=[1.0, 2.1], contrast=[1.0, 2.1], saturation=[0.5, 1.5])
+            #color_aug = transforms.ColorJitter(brightness=[0.5, 1.5], contrast=[0.5, 1.5], saturation=[0.5, 1.5])
             #random_factor = np.random.randint(0, 31) / 10.
             #sharpe_aug = transforms.RandomAdjustSharpness(random_factor, p=0.5)
             img = color_aug(img)
@@ -152,8 +155,6 @@ class DatasetDRIVE(data.Dataset):
         records = record_fd.readlines()
 
         img_metaname = [line.strip() for line in records]
-        # print(img_metaname)
-        # #exit(-1)
 
         return img_metaname
 

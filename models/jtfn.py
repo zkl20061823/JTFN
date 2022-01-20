@@ -3,13 +3,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from models.backbone.base import get_base
+from models.backbone.resbase import get_resbase
 from models.modules import FIM, GAU
 
 class JTFN(nn.Module):
     def __init__(self, backbone, use_gau, use_fim, up, classes=1, steps=3, reduce_dim=False):
         super(JTFN, self).__init__()
-        pretrained = False
-        assert backbone in ['base']
+        assert backbone in ['base64', 'base32', 'resbase32', 'resbase64']
         assert classes == 1
         assert len(use_gau) == 5
         assert len(use_fim) == 4
@@ -21,10 +21,22 @@ class JTFN(nn.Module):
         self.reduce_dim = reduce_dim
         self.bce_loss = nn.BCELoss()
 
-        if self.backbone == 'base':
+        if self.backbone == 'base64':
             print('INFO: Using base backbone')
             filters = [64, 128, 256, 512, 512]
             self.layer0, self.layer1, self.layer2, self.layer3, self.layer4 = get_base(filters)
+        elif self.backbone == 'base32':
+            print('INFO: Using base backbone')
+            filters = [32, 64, 128, 256, 512]
+            self.layer0, self.layer1, self.layer2, self.layer3, self.layer4 = get_base(filters)
+        elif self.backbone == 'resbase32':
+            print('INFO: Using base backbone')
+            filters = [32, 64, 128, 256, 512]
+            self.layer0, self.layer1, self.layer2, self.layer3, self.layer4 = get_resbase(filters)
+        elif self.backbone == 'resbase64':
+            print('INFO: Using base backbone')
+            filters = [64, 128, 256, 512, 512]
+            self.layer0, self.layer1, self.layer2, self.layer3, self.layer4 = get_resbase(filters)
         else:
             raise RuntimeError('Backbone ', backbone, 'is not implemented.')
 
@@ -83,7 +95,7 @@ class JTFN(nn.Module):
         return output_dict
 
 
-    def compute_objective(self, output_dict, batch_dict):
+    def compute_objective(self, output_dict, batch_dict, multi_layer=True):
         loss_dict = {}
 
         gt_mask = batch_dict['anno_mask']
@@ -95,31 +107,43 @@ class JTFN(nn.Module):
             pred_mask = output_dict['step_' + str(i) + '_output_mask'] # list
             pred_boundary = output_dict['step_' + str(i) + '_output_boundary'] # list
             step_mask_loss = None
-            for k in range(len(pred_mask)):
-                inner_pred = pred_mask[k]
-                if inner_pred is None:
-                    continue
+            if multi_layer:
+                for k in range(len(pred_mask)):
+                    inner_pred = pred_mask[k]
+                    if inner_pred is None:
+                        continue
+                    inner_pred = F.interpolate(inner_pred, (h, w), mode='bilinear', align_corners=True)
+                    mask_loss = self.bce_loss(inner_pred, gt_mask.float())
+                    if step_mask_loss is None:
+                        step_mask_loss = torch.zeros_like(mask_loss).to(mask_loss.device)
+                    step_mask_loss = step_mask_loss + mask_loss
+                step_mask_loss = step_mask_loss / len(pred_mask)
+            else:
+                inner_pred = pred_mask[0]
                 inner_pred = F.interpolate(inner_pred, (h, w), mode='bilinear', align_corners=True)
                 mask_loss = self.bce_loss(inner_pred, gt_mask.float())
-                if step_mask_loss is None:
-                    step_mask_loss = torch.zeros_like(mask_loss).to(mask_loss.device)
-                step_mask_loss = step_mask_loss + mask_loss
-            step_mask_loss = step_mask_loss / len(pred_mask)
+                step_mask_loss = mask_loss
 
             step_topo_loss = None
-            for k in range(len(pred_boundary)):
-                inner_pred = pred_boundary[k]
-                if inner_pred is None:
-                    continue
+            if multi_layer:
+                for k in range(len(pred_boundary)):
+                    inner_pred = pred_boundary[k]
+                    if inner_pred is None:
+                        continue
+                    inner_pred = F.interpolate(inner_pred, (h, w), mode='bilinear', align_corners=True)
+                    topo_loss = self.bce_loss(inner_pred, gt_boundary.float())
+                    if step_topo_loss is None:
+                        step_topo_loss = torch.zeros_like(topo_loss).to(topo_loss.device)
+                    step_topo_loss = step_topo_loss + topo_loss
+                if step_topo_loss is not None:
+                    step_topo_loss = step_topo_loss / len(pred_boundary)
+                else:
+                    step_topo_loss = torch.zeros_like(step_mask_loss).to(step_mask_loss.device)
+            else:
+                inner_pred = pred_boundary[0]
                 inner_pred = F.interpolate(inner_pred, (h, w), mode='bilinear', align_corners=True)
                 topo_loss = self.bce_loss(inner_pred, gt_boundary.float())
-                if step_topo_loss is None:
-                    step_topo_loss = torch.zeros_like(topo_loss).to(topo_loss.device)
-                step_topo_loss = step_topo_loss + topo_loss
-            if step_topo_loss is not None:
-                step_topo_loss = step_topo_loss / len(pred_boundary)
-            else:
-                step_topo_loss = torch.zeros_like(step_mask_loss).to(step_mask_loss.device)
+                step_topo_loss = topo_loss
 
             if total_loss is None:
                 total_loss = torch.zeros_like(step_mask_loss).to(step_mask_loss.device)

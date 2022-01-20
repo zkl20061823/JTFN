@@ -9,15 +9,13 @@ import torchvision.transforms.functional as F
 from torchvision import transforms
 from torch.utils import data
 
-"""TODO: Add ignore selection module"""
-
 class DatasetROAD(data.Dataset):
 
     def __init__(self, benchmark, datapath, split, img_mode, img_size):
         super(DatasetROAD, self).__init__()
         self.split = 'val' if split in ['val', 'test'] else 'train'
         self.benchmark = benchmark
-        assert self.benchmark == 'roads'
+        assert self.benchmark in ['roads']
         self.img_mode = img_mode
         assert img_mode in ['crop', 'same', 'resize']
         self.img_size = img_size
@@ -29,14 +27,10 @@ class DatasetROAD(data.Dataset):
         self.img_metadata = self.load_metadata()
         self.norm_img = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406],
-                                 [0.229, 0.224, 0.225])
+            transforms.Normalize([0.393, 0.396, 0.356],
+                                 [0.119, 0.118, 0.124])
         ])
-
-        if self.img_mode == 'resize':
-            self.resize = transforms.Resize([img_size, img_size], interpolation=Image.NEAREST)
-        else:
-            self.resize = None
+        self.resize = transforms.Resize([img_size, img_size], interpolation=Image.NEAREST)
 
     def __len__(self):
         return len(self.img_metadata)
@@ -57,6 +51,10 @@ class DatasetROAD(data.Dataset):
             img = F.crop(img, i, j, h, w)
             anno_mask = F.crop(anno_mask, i, j, h, w)
             anno_boundary = F.crop(anno_boundary, i, j, h, w)
+            if anno_mask.shape[1] != self.img_size or anno_mask.shape[2] != self.img_size:
+                img = self.resize(img)
+                anno_mask = self.resize(anno_mask)
+                anno_boundary = self.resize(anno_boundary)
         else:
             pass
 
@@ -68,6 +66,7 @@ class DatasetROAD(data.Dataset):
             'anno_mask': anno_mask,
             'anno_boundary': anno_boundary
         }
+
         return batch
 
     def augmentation(self, img, anno_mask, anno_boundary):
@@ -84,15 +83,18 @@ class DatasetROAD(data.Dataset):
         anno_boundary = transform_vflip(anno_boundary)
 
         #img = self.to_tensor(img)
+        # change rotation
         if np.random.random() > 0.5:
+            #p = np.random.choice([90, 180, 270])
             p = np.random.uniform(-180,180,1)[0]
-            transform_rotate = transforms.RandomRotation((p, p), expand=True)
+            transform_rotate = transforms.RandomRotation((p, p), expand=False)
             img = transform_rotate(img)
             anno_mask = transform_rotate(anno_mask)
             anno_boundary = transform_rotate(anno_boundary)
 
         if np.random.random() > 0.5:
             color_aug = transforms.ColorJitter(brightness=[1.0, 2.1], contrast=[1.0, 2.1], saturation=[0.5, 1.5])
+            #color_aug = transforms.ColorJitter(brightness=[0.6, 1.5], contrast=[0.8, 1.2], saturation=[0.6, 1.5])
             #random_factor = np.random.randint(0, 31) / 10.
             #sharpe_aug = transforms.RandomAdjustSharpness(random_factor, p=0.5)
             img = color_aug(img)
@@ -125,13 +127,16 @@ class DatasetROAD(data.Dataset):
 
     def read_img(self, img_name):
         # maybe png
+        # return Image.open(os.path.join(self.img_path, img_name) + '.tiff')
         return Image.open(os.path.join(self.img_path, img_name) + '.png')
 
     def load_metadata(self):
         if self.split == 'train':
             meta_file = os.path.join('data/split', self.benchmark, 'train.txt')
+            #meta_file = os.path.join(r'data\\split', self.benchmark, 'val.txt')
         elif self.split == 'val' or self.split == 'test':
             meta_file = os.path.join('data/split', self.benchmark, 'test.txt')
+            #meta_file = os.path.join(r'data\\split', self.benchmark, 'test.txt')
         else:
             raise RuntimeError('Undefined split ', self.split)
 
@@ -139,8 +144,6 @@ class DatasetROAD(data.Dataset):
         records = record_fd.readlines()
 
         img_metaname = [line.strip() for line in records]
-        # print(img_metaname)
-        # #exit(-1)
 
         return img_metaname
 

@@ -14,7 +14,7 @@ class CSDataset:
             'cracktree200': DatasetCRACK,
             'crack500': DatasetCRACK,
             'drive': DatasetDRIVE,
-            'roads': DatasetROAD
+            'roads': DatasetROAD,
         }
 
         cls.datapath = datapath
@@ -33,13 +33,15 @@ class CSDataset:
                                               split=split,
                                               img_mode=img_mode,
                                               img_size=img_size)
+            dataloader = DataLoader(dataset, batch_size=bsz, shuffle=shuffle, num_workers=nworker, drop_last=True)
         else:
             dataset = cls.datasets[benchmark](benchmark,
                                               datapath=cls.datapath,
                                               split=split,
                                               img_mode='same',
                                               img_size=None)
+            dataloader = DataLoader(dataset, batch_size=bsz, shuffle=shuffle, num_workers=nworker, drop_last=False)
 
-        dataloader = DataLoader(dataset, batch_size=bsz, shuffle=shuffle, num_workers=nworker)
+
 
         return dataloader
