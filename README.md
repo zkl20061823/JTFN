@@ -50,7 +50,7 @@ Please modify the config and run:
 `sh test_jtfn.sh`  
 
 ### retained models
-We provide our retrained models on Roads, DRIVE and Crack500 ([link](https://pan.baidu.com/s/18TXR_WF_QRSLplq4q0WqxA), password:n14e):
+We provide our retrained models on Roads, DRIVE and Crack500 ([Baidu](https://pan.baidu.com/s/18TXR_WF_QRSLplq4q0WqxA), password:n14e; [Google](https://drive.google.com/drive/folders/1_H5yHegJYdbAW2m8QGvAuQG4pPbsPnqk?usp=sharing)):
 
 | Dataset | F1 |
 | ----- | ----- |
